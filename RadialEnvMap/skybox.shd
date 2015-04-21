@@ -1,0 +1,101 @@
+[Vertex shader]
+
+out vec3 cubeCoord;
+
+void main()
+{
+	gl_Position = gl_Vertex;
+	cubeCoord = gl_MultiTexCoord0.xyz;
+}
+
+
+[Fragment shader]
+
+uniform samplerCube EnvCube;
+uniform sampler2D Env2D;
+
+uniform float mipBias;
+
+in vec3 cubeCoord;
+out vec4 fragColor;
+
+#define PI 3.141592653589793
+
+float CalcMipLevel(vec3 a_coords)
+{
+  a_coords = normalize(a_coords); // May not be necessary if already normalized
+  
+  vec3 dx = dFdx( a_coords );
+  vec3 dy = dFdy( a_coords );
+  float d = max( dot( dx, dx ), dot( dy, dy ) );
+  
+  // Should technically calculate the arc length on the unit sphere - line length should do for now.
+  // 256 seems to be a good value for the size of the texture we are using
+  //float mipLevel = log2( sqrt(d) * 256.0);  
+  float mipLevel = 0.5 * log2(d) + 8.0;
+  
+  //mipLevel = max(0.0, mipLevel);
+  return mipLevel;
+}
+
+
+vec4 RadialLookup(sampler2D a_radialTex, vec3 a_coords, float a_mipLevel)
+{
+  float r = length(a_coords);
+  float lon = atan(a_coords.z, a_coords.x);
+  float lat = acos(a_coords.y / r); // Divide not necessary if a_coords is normalized
+
+  const vec2 rads = vec2(1.0 / (PI * 2.0), 1.0 / PI);
+  vec2 sphereCoords = vec2(lon, lat) * rads;
+
+  return textureLod(a_radialTex, sphereCoords, a_mipLevel);
+}
+
+
+vec4 RadialLookupOrangeBook(sampler2D a_radialTex, vec3 a_coords, float a_mipLevel)
+{
+  vec2 sphereCoords;
+  sphereCoords.y = normalize(a_coords).y;
+  a_coords.y = 0.0;
+  sphereCoords.x = normalize(a_coords).x;
+
+  sphereCoords.y = (sphereCoords.y * -0.5) + 0.5;
+
+  // Translate index values into proper range
+  if (a_coords.z >= 0.0)
+  {
+    sphereCoords.x = (sphereCoords.x * -0.25) + 0.25;
+  }
+  else
+  {
+    sphereCoords.x = (sphereCoords.x * 0.25) - 0.25;
+  }
+  
+  return textureLod(a_radialTex, sphereCoords, a_mipLevel);  
+}
+
+
+void main()
+{
+
+#ifdef RADIAL_MAP  
+  float mipLevel = mipBias;
+  
+  #ifndef CONSTANT_MIP
+    mipLevel += CalcMipLevel(cubeCoord);
+  #endif
+  
+	fragColor.rgb = RadialLookup(Env2D, cubeCoord, mipLevel).rgb;
+	
+#else	
+
+  #ifndef CONSTANT_MIP
+	  fragColor.rgb = texture(EnvCube, cubeCoord, mipBias).rgb;
+	#else  
+    fragColor.rgb = textureLod(EnvCube, cubeCoord, mipBias).rgb;
+  #endif
+  
+#endif
+
+	fragColor.a = 1.0;	
+}
