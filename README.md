@@ -6,6 +6,7 @@ and not having issues with seam filtering.
 
 However, expensive ALU math is needed to perform this style of texture mapping. 
 
+![Screenshot](RadialEnvMap.jpg?raw=true "Demo screenshot")
 
 ##Author##
 This demo was made by Damian Trebilco based on a demo by Emil Persson, aka Humus.
