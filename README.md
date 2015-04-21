@@ -6,6 +6,8 @@ and not having issues with seam filtering.
 
 However, expensive ALU math is needed to perform this style of texture mapping. 
 
+[Read the PDF paper](./RadialEnvMap.pdf)
+
 ![Screenshot](RadialEnvMap.jpg?raw=true "Demo screenshot")
 
 ##Author##
